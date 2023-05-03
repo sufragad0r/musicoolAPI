@@ -1,0 +1,51 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caching directories
+*.egg-info/
+dist/
+build/
+.cache/
+pytest_cache/
+mypy_cache/
+mypy_output/
+__pycache__/
+
+# Environment files
+.env
+.env.*
+.envrc
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# Dependency directories
+venv/
+env/
+.venv/
+ENV/
+
+# Log files
+*.log
+log/
+logs/
+log.txt
+logs.txt
+
+# Test files
+test_*.py
+*_test.py
+tests/
+
+# Other files
+.DS_Store
+*.sqlite3
+*.sql
+*.json
+*.yml
+*.yaml
+*.ini
