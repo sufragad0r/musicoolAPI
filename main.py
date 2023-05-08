@@ -118,7 +118,7 @@ async def actualizar_usuario(username: str, usuario: Usuario, current_user: Usua
 
 @app.delete("/usuarios/{username}", 
             status_code=status.HTTP_200_OK,
-            summary="Actualizar usuario",
+            summary="Eliminar usuario",
             tags=["Usuarios"])
 async def eliminar_usuario(username: str, current_user: Usuario = Depends(obtenerUsuarioToken)):
     """
