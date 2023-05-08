@@ -2,60 +2,14 @@ from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from obj.usuario import Usuario
 from obj.token import Token, TokenData
 from dao.usuariodao import UsuarioDAO
+from sec.sec import verificarPassword, obtener_password_hash, autenticarUsuario, crearToken, obtenerUsuarioToken,ACCESS_TOKEN_EXPIRE_MINUTES
 
-app = FastAPI()
+app = FastAPI(title="Musicool", version="ALPHA")
 
 dao = UsuarioDAO()
-
-SECRET_KEY = "b9283fe52786894f37fd73b300fd8abcdaadb03d930c108808431c9f84f4cf8a"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-def verificarPassword(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
-def obtener_password_hash(password):
-    return pwd_context.hash(password)
-
-def autenticarUsuario(username: str, password: str):
-    user = dao.obtenerUsuario(username)
-    if not user:
-        return False
-    if not verificarPassword(password, user.password):
-        return False
-    return user
-
-def crearToken(data: dict, expires_delta: timedelta = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-async def obtenerUsuarioToken(token: str = Depends(oauth2_scheme)):
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token invalido")
-        token_data = TokenData(username=username)
-    except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token invalido")
-    user = dao.obtenerUsuario(token_data.username)
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no encontrado")
-    return user
 
 @app.post("/token", 
           response_model=Token, 
@@ -78,7 +32,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     **Excepciones:**
     - HTTPException(status_code=401, detail="Usuario o contraseña incorrectos"): si el usuario no existe o la contraseña es incorrecta.
     """
-    user = autenticarUsuario(form_data.username, form_data.password)
+    user = autenticarUsuario(username=form_data.username, password=form_data.password, dao=dao)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario o contraseña incorrectos")
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -168,20 +122,19 @@ async def actualizar_usuario(username: str, usuario: Usuario, current_user: Usua
             tags=["Usuarios"])
 async def eliminar_usuario(username: str, current_user: Usuario = Depends(obtenerUsuarioToken)):
     """
-    Actualiza un usuario existente en la base de datos.
+    Elimina un usuario existente en la base de datos.
 
     **Parámetros**:
-    - `username`: nombre de usuario del usuario a actualizar (path)
-    - `usuario`: información del usuario a actualizar (body)
-    - `current_user`: usuario autenticado actualmente
+    - `username` (str): Nombre de usuario a eliminar.
+    - `current_user` (Usuario, opcional): Usuario autenticado actualmente. Se obtiene mediante el token de autenticación.
 
     **Retorna**:
-    - Mensaje de éxito si se actualizó correctamente
+    - dict: Diccionario que contiene el mensaje de éxito en caso de que se elimine el usuario.
 
     **Excepciones**:
-    - HTTP 401: si el usuario autenticado no tiene permisos para actualizar este usuario
-    - HTTP 404: si el usuario a actualizar no se encuentra en la base de datos
-    - HTTP 503: si hay un error al actualizar el usuario
+    - HTTPException: Si el usuario actualmente autenticado no tiene permiso para eliminar el usuario.
+    - HTTPException: Si no se puede encontrar el usuario especificado en la base de datos.
+    - HTTPException: Si se produce un error al eliminar el usuario.
     """
     if current_user.username != username:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No está autorizado para eliminar este usuario")
