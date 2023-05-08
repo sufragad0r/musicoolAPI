@@ -80,8 +80,6 @@ def crear_usuario(usuario: Usuario):
     
 @app.get("/usuarios/{username}", status_code=status.HTTP_200_OK, response_model=Usuario)
 async def obtener_usuario(username: str, current_user: Usuario = Depends(obtenerUsuarioToken)):
-    if current_user.username != username:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tiene permisos para acceder a este usuario")
     usuario = dao.obtenerUsuario(username)
     if usuario is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El usuario no se encuentra en la base de datos")
@@ -93,7 +91,7 @@ async def actualizar_usuario(username: str, usuario: Usuario, current_user: Usua
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No está autorizado para actualizar este usuario")
     hashed_password = obtener_password_hash(usuario.password)
     usuario.password = hashed_password
-    resultado = dao.actualizarUsuario(username, usuario)
+    resultado = dao.actualizarUsuario(username, dict(usuario))
     if resultado == 0:
         return {"mensaje": f"Usuario actualizado: {usuario.username}"}
     elif resultado == -1:

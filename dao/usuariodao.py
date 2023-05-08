@@ -54,34 +54,34 @@ class UsuarioDAO:
             logging.error(f"Error al obtener el usuario: {e}")
             return None
     
-    def actualizarUsuario(self, username: str, campos: dict) -> bool:
+    def actualizarUsuario(self, username: str, campos: dict) -> int:
         try:
             datos: Collection = self.db.datos
 
             if not datos.find_one({"username": username}):
                 logging.warning(f"Usuario no encontrado en la BD: {username}")
-                return False
+                return -1
 
             datos.update_one({"username": username}, {"$set": campos})
             logging.info(f"Usuario actualizado: {username}")
-            return True
+            return 0
 
         except PyMongoError as e:
             logging.error(f"Error al actualizar el usuario: {e}")
-            return False
+            return -2
 
-    def eliminarUsuario(self, username: str) -> bool:
+    def eliminarUsuario(self, username: str) -> int:
         try:
             datos: Collection = self.db.datos
 
             if not datos.find_one({"username": username}):
                 logging.warning(f"Usuario no encontrado en la BD: {username}")
-                return False
+                return -1
 
             datos.delete_one({"username": username})
             logging.info(f"Usuario eliminado: {username}")
-            return True
+            return 0
 
         except PyMongoError as e:
             logging.error(f"Error al eliminar el usuario: {e}")
-            return False
+            return -2
