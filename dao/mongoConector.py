@@ -19,10 +19,10 @@ class Conector:
         except (ConnectionFailure, InvalidURI, ConfigurationError, OperationFailure) as e:
             logging.error(f"Error al conectarse a la base de datos: {e}")
 
-    def conectarbd(self) -> Database:
+    def conectarBD(self) -> Database:
         try:
             db = self._host.musicooldb
-            logging.info("Conexión a la bd usuarios exitosa.")
+            logging.info("Conexión a la bd exitosa.")
             return db
         except (AttributeError, OperationFailure) as e:
             logging.error(f"Error al conectar a la base de datos: {e}")
