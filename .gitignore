@@ -49,3 +49,5 @@ tests/
 *.yml
 *.yaml
 *.ini
+# documentos de mongodb
+mongo-data

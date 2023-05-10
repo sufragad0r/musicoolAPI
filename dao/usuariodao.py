@@ -16,14 +16,14 @@ class UsuarioDAO:
 
     def __init__(self) -> None:
         try:
-            self.db = Conector().conectarUsuarios()
+            self.db = Conector().conectarBD()
         except PyMongoError as e:
             logging.error(f"Error al conectar a la base de datos: {e}")
             
 
     def crearUsuario(self, usuarioNuevo: Usuario) -> int:
         try:
-            datos: Collection = self.db.datos
+            datos: Collection = self.db.usuariosColeccion
 
             if datos.find_one({"username": usuarioNuevo.username}):
                 logging.warning(f"Usuario ya existente en la BD")
@@ -39,7 +39,7 @@ class UsuarioDAO:
 
     def obtenerUsuario(self, username: str) -> Usuario:
         try:
-            datos: Collection = self.db.datos
+            datos: Collection = self.db.usuariosColeccion
 
             usuarioDict = datos.find_one({"username": username})
             if usuarioDict:
@@ -56,7 +56,7 @@ class UsuarioDAO:
     
     def actualizarUsuario(self, username: str, campos: dict) -> int:
         try:
-            datos: Collection = self.db.datos
+            datos: Collection = self.db.usuariosColeccion
 
             if not datos.find_one({"username": username}):
                 logging.warning(f"Usuario no encontrado en la BD: {username}")
@@ -72,7 +72,7 @@ class UsuarioDAO:
 
     def eliminarUsuario(self, username: str) -> int:
         try:
-            datos: Collection = self.db.datos
+            datos: Collection = self.db.usuariosColeccion
 
             if not datos.find_one({"username": username}):
                 logging.warning(f"Usuario no encontrado en la BD: {username}")
