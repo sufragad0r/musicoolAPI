@@ -5,7 +5,7 @@ from jose import JWTError, jwt
 from obj.usuario import Usuario
 from obj.token import Token, TokenData
 from dao.usuariodao import UsuarioDAO
-from sec.sec import verificarPassword, obtener_password_hash, autenticarUsuario, crearToken, obtenerUsuarioToken,ACCESS_TOKEN_EXPIRE_MINUTES, validar_credenciasles
+from sec.sec import verificarPassword, obtener_password_hash, autenticarUsuario, crearToken, obtenerUsuarioToken,ACCESS_TOKEN_EXPIRE_MINUTES, validar_credenciales
 
 app = FastAPI(title="Musicool", version="ALPHA")
 
@@ -60,7 +60,7 @@ def crear_usuario(usuario: Usuario, credentials: HTTPBasicCredentials = Depends(
     **Excepciones**: 
     - HTTPException: si el usuario ya existe en la base de datos o si hay un error al crearlo.
     """
-    if not validar_credenciasles(credentials):
+    if not validar_credenciales(credentials):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Este cliente no esta autorizado para utilizar la api")
     hashed_password = obtener_password_hash(usuario.password)
     usuario.password = hashed_password
@@ -84,7 +84,7 @@ async def obtener_usuario(username: str, credentials: HTTPBasicCredentials = Dep
     - `username`: Nombre de usuario del usuario a buscar.
     - `current_user`: Usuario autenticado (se obtiene del token en la petición).
     """
-    if not validar_credenciasles(credentials):
+    if not validar_credenciales(credentials):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Este cliente no esta autorizado para utilizar la api")
     usuario = dao.obtenerUsuario(username)
     if usuario is None:
@@ -112,7 +112,7 @@ async def actualizar_usuario(username: str, usuario: Usuario, current_user: Usua
     - HTTP 404: si el usuario a actualizar no se encuentra en la base de datos
     - HTTP 503: si hay un error al actualizar el usuario
     """
-    if current_user.username != username and not validar_credenciasles(credentials):
+    if current_user.username != username and not validar_credenciales(credentials):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No está autorizado para actualizar este usuario")
     hashed_password = obtener_password_hash(usuario.password)
     usuario.password = hashed_password
@@ -144,7 +144,7 @@ async def eliminar_usuario(username: str, current_user: Usuario = Depends(obtene
     - HTTPException: Si no se puede encontrar el usuario especificado en la base de datos.
     - HTTPException: Si se produce un error al eliminar el usuario.
     """
-    if not validar_credenciasles(credentials) and not validar_credenciasles(credentials):
+    if current_user.username != username and not validar_credenciales(credentials):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
     if current_user.username != username:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No está autorizado para eliminar este usuario")

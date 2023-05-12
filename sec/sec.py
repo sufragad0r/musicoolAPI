@@ -55,7 +55,7 @@ async def obtenerUsuarioToken(token: str = Depends(OAuth2PasswordBearer(tokenUrl
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no encontrado")
     return user
 
-def validar_credenciasles(credentials: HTTPBasicCredentials):
+def validar_credenciales(credentials: HTTPBasicCredentials):
     if credentials.username in users and credentials.password == users[credentials.username]:
         return True
     else:
