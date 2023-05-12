@@ -3,7 +3,7 @@ from passlib.context import CryptContext
 from dao.usuariodao import UsuarioDAO
 from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer,HTTPBasic, HTTPBasicCredentials
 from obj.token import TokenData
 
 SECRET_KEY = "b9283fe52786894f37fd73b300fd8abcdaadb03d930c108808431c9f84f4cf8a"
@@ -12,7 +12,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-
+users = {
+    "clienteWpf": "X8#pW9&mL@5z",
+    "clienteMovil": "fR5^hN7*oP#2",
+}
 def verificarPassword(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
@@ -51,3 +54,9 @@ async def obtenerUsuarioToken(token: str = Depends(OAuth2PasswordBearer(tokenUrl
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no encontrado")
     return user
+
+def validar_credenciasles(credentials: HTTPBasicCredentials):
+    if credentials.username in users and credentials.password == users[credentials.username]:
+        return True
+    else:
+        return False
