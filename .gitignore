@@ -46,7 +46,6 @@ tests/
 *.sqlite3
 *.sql
 *.json
-*.yml
 *.yaml
 *.ini
 # documentos de mongodb

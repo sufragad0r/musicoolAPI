@@ -1,13 +1,17 @@
 from fastapi import FastAPI, HTTPException, status, Depends
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm, HTTPBasicCredentials, HTTPBasic
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from obj.usuario import Usuario
 from obj.token import Token, TokenData
 from dao.usuariodao import UsuarioDAO
-from sec.sec import verificarPassword, obtener_password_hash, autenticarUsuario, crearToken, obtenerUsuarioToken,ACCESS_TOKEN_EXPIRE_MINUTES
+from sec.sec import verificarPassword, obtener_password_hash, autenticarUsuario, crearToken, obtenerUsuarioToken,ACCESS_TOKEN_EXPIRE_MINUTES, validar_credenciales
 
 app = FastAPI(title="Musicool", version="ALPHA")
+
+security = HTTPBasic()
+
+
 
 dao = UsuarioDAO()
 
@@ -43,7 +47,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
           status_code=status.HTTP_201_CREATED, 
           summary="Crear usuario", 
           tags=["Usuarios"])
-def crear_usuario(usuario: Usuario):
+def crear_usuario(usuario: Usuario, credentials: HTTPBasicCredentials = Depends(security)):
     """
     Crea un nuevo usuario en la base de datos.
 
@@ -56,6 +60,8 @@ def crear_usuario(usuario: Usuario):
     **Excepciones**: 
     - HTTPException: si el usuario ya existe en la base de datos o si hay un error al crearlo.
     """
+    if not validar_credenciales(credentials):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Este cliente no esta autorizado para utilizar la api")
     hashed_password = obtener_password_hash(usuario.password)
     usuario.password = hashed_password
     resultado = dao.crearUsuario(usuario)
@@ -71,13 +77,15 @@ def crear_usuario(usuario: Usuario):
           response_model=Usuario,
           summary="Obtener usuario",
           tags=["Usuarios"])
-async def obtener_usuario(username: str, current_user: Usuario = Depends(obtenerUsuarioToken)):
+async def obtener_usuario(username: str, credentials: HTTPBasicCredentials = Depends(security)):
     """
     Obtiene la información del usuario especificado.
 
     - `username`: Nombre de usuario del usuario a buscar.
     - `current_user`: Usuario autenticado (se obtiene del token en la petición).
     """
+    if not validar_credenciales(credentials):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Este cliente no esta autorizado para utilizar la api")
     usuario = dao.obtenerUsuario(username)
     if usuario is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El usuario no se encuentra en la base de datos")
@@ -87,7 +95,7 @@ async def obtener_usuario(username: str, current_user: Usuario = Depends(obtener
          status_code=status.HTTP_200_OK,
          summary="Actualizar usuario",
          tags=["Usuarios"])
-async def actualizar_usuario(username: str, usuario: Usuario, current_user: Usuario = Depends(obtenerUsuarioToken)):
+async def actualizar_usuario(username: str, usuario: Usuario, current_user: Usuario = Depends(obtenerUsuarioToken), credentials: HTTPBasicCredentials = Depends(security)):
     """
     Actualiza un usuario existente en la base de datos.
 
@@ -104,7 +112,7 @@ async def actualizar_usuario(username: str, usuario: Usuario, current_user: Usua
     - HTTP 404: si el usuario a actualizar no se encuentra en la base de datos
     - HTTP 503: si hay un error al actualizar el usuario
     """
-    if current_user.username != username:
+    if current_user.username != username and not validar_credenciales(credentials):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No está autorizado para actualizar este usuario")
     hashed_password = obtener_password_hash(usuario.password)
     usuario.password = hashed_password
@@ -120,7 +128,7 @@ async def actualizar_usuario(username: str, usuario: Usuario, current_user: Usua
             status_code=status.HTTP_200_OK,
             summary="Eliminar usuario",
             tags=["Usuarios"])
-async def eliminar_usuario(username: str, current_user: Usuario = Depends(obtenerUsuarioToken)):
+async def eliminar_usuario(username: str, current_user: Usuario = Depends(obtenerUsuarioToken), credentials: HTTPBasicCredentials = Depends(security)):
     """
     Elimina un usuario existente en la base de datos.
 
@@ -136,6 +144,8 @@ async def eliminar_usuario(username: str, current_user: Usuario = Depends(obtene
     - HTTPException: Si no se puede encontrar el usuario especificado en la base de datos.
     - HTTPException: Si se produce un error al eliminar el usuario.
     """
+    if current_user.username != username and not validar_credenciales(credentials):
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
     if current_user.username != username:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No está autorizado para eliminar este usuario")
     resultado = dao.eliminarUsuario(username)
