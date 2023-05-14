@@ -23,7 +23,7 @@ class UsuarioDAO:
 
     def crearUsuario(self, usuarioNuevo: Usuario) -> int:
         try:
-            datos: Collection = self.db.usuariosColeccion
+            datos: Collection = self.db.usuarios
 
             if datos.find_one({"username": usuarioNuevo.username}):
                 logging.warning(f"Usuario ya existente en la BD")
@@ -39,11 +39,11 @@ class UsuarioDAO:
 
     def obtenerUsuario(self, username: str) -> Usuario:
         try:
-            datos: Collection = self.db.usuariosColeccion
+            datos: Collection = self.db.usuarios
 
             usuarioDict = datos.find_one({"username": username})
             if usuarioDict:
-                usuario = Usuario(username=usuarioDict["username"],password=usuarioDict["password"])
+                usuario = Usuario(username=usuarioDict["username"],password=usuarioDict["password"],telefono=usuarioDict["telefono"])
                 logging.info(f"Usuario obtenido: {username}")
                 return usuario
 
@@ -56,7 +56,7 @@ class UsuarioDAO:
     
     def actualizarUsuario(self, username: str, campos: dict) -> int:
         try:
-            datos: Collection = self.db.usuariosColeccion
+            datos: Collection = self.db.usuarios
 
             if not datos.find_one({"username": username}):
                 logging.warning(f"Usuario no encontrado en la BD: {username}")
@@ -72,7 +72,7 @@ class UsuarioDAO:
 
     def eliminarUsuario(self, username: str) -> int:
         try:
-            datos: Collection = self.db.usuariosColeccion
+            datos: Collection = self.db.usuarios
 
             if not datos.find_one({"username": username}):
                 logging.warning(f"Usuario no encontrado en la BD: {username}")

@@ -15,6 +15,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 users = {
     "clienteWpf": "X8#pW9&mL@5z",
     "clienteMovil": "fR5^hN7*oP#2",
+    "dev" : "dev"
 }
 def verificarPassword(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)

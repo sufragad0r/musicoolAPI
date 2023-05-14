@@ -3,9 +3,12 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm, HT
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from obj.usuario import Usuario
+from obj.otp import OTP
 from obj.token import Token, TokenData
 from dao.usuariodao import UsuarioDAO
+from dao.otpdao import OTPDAO
 from sec.sec import verificarPassword, obtener_password_hash, autenticarUsuario, crearToken, obtenerUsuarioToken,ACCESS_TOKEN_EXPIRE_MINUTES, validar_credenciales
+from auth2.sms import generarCodigoOTP, SMS
 
 app = FastAPI(title="Musicool", version="ALPHA")
 
@@ -15,11 +18,44 @@ security = HTTPBasic()
 
 dao = UsuarioDAO()
 
-@app.post("/token", 
+@app.post("/login",  
+          summary="Login para el sistema", 
+          tags=["Login"])
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+    Verificar login del usuario
+
+    **Parámetros:**
+    - `form_data`: objeto OAuth2PasswordRequestForm: formulario de solicitud de contraseña con los siguientes campos:
+        - `username` (str): nombre de usuario.
+        - `password` (str): contraseña del usuario.
+
+    **Retorna:**
+    - solicitarOTP:
+        - `False` : Error al autenticar usuario
+        - `True` : Solicitar otp con un limite de 5 minutos
+    **Excepciones:**
+    - HTTPException(status_code=401, detail="Usuario o contraseña incorrectos"): si el usuario no existe o la contraseña es incorrecta.
+    """
+    user = autenticarUsuario(username=form_data.username, password=form_data.password, dao=dao)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario o contraseña incorrectos")
+    
+    otpDAO = OTPDAO()
+    otpUsuario = OTP(username=form_data.username, codigo=generarCodigoOTP())
+        
+    if otpDAO.crearUsuarioOTP(otpUsuario):
+        smsOTP = SMS()
+        smsOTP.mandarMensajeOTP(codigoOTP = otpUsuario.codigo, numeroDestino=user.telefono)
+        return {"solicitarOTP" : True}
+    
+    return {"solicitarOTP" : False}
+
+@app.post("/login/auth", 
           response_model=Token, 
-          summary="Obtener token de acceso", 
-          tags=["Autenticación"])
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+          summary="Validacion OTP para obtener un token de autentificacion", 
+          tags=["Login"])
+async def login_token(form_data: OAuth2PasswordRequestForm = Depends()):
     """
     Obtener un token de acceso para el usuario autenticado.
 
@@ -36,13 +72,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     **Excepciones:**
     - HTTPException(status_code=401, detail="Usuario o contraseña incorrectos"): si el usuario no existe o la contraseña es incorrecta.
     """
-    user = autenticarUsuario(username=form_data.username, password=form_data.password, dao=dao)
-    if not user:
+    if not OTPDAO().autenticarOTP(username=form_data.username, otp= form_data.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario o contraseña incorrectos")
+    
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = crearToken(data={"sub": user.username}, expires_delta=access_token_expires)
+    access_token = crearToken(data={"sub": form_data.username}, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
-
+    
+    
 @app.post("/usuarios", 
           status_code=status.HTTP_201_CREATED, 
           summary="Crear usuario", 
