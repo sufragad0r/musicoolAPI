@@ -5,6 +5,7 @@ from jose import JWTError, jwt
 from obj.usuario import Usuario
 from obj.otp import OTP
 from obj.token import Token, TokenData
+from obj.autorizacionotp import autorizacionOTP
 from dao.usuariodao import UsuarioDAO
 from dao.otpdao import OTPDAO
 from sec.sec import verificarPassword, obtener_password_hash, autenticarUsuario, crearToken, obtenerUsuarioToken,ACCESS_TOKEN_EXPIRE_MINUTES, validar_credenciales
@@ -18,7 +19,8 @@ security = HTTPBasic()
 
 dao = UsuarioDAO()
 
-@app.post("/login",  
+@app.post("/login",
+          response_model=autorizacionOTP,  
           summary="Login para el sistema", 
           tags=["Login"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -33,7 +35,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     **Retorna:**
     - solicitarOTP:
         - `False` : Error al autenticar usuario
-        - `True` : Solicitar otp con un limite de 5 minutos
+        - `True` : Solicitar otp con un limite de 3 minutos
     **Excepciones:**
     - HTTPException(status_code=401, detail="Usuario o contraseña incorrectos"): si el usuario no existe o la contraseña es incorrecta.
     """
@@ -42,14 +44,17 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario o contraseña incorrectos")
     
     otpDAO = OTPDAO()
-    otpUsuario = OTP(username=form_data.username, codigo=generarCodigoOTP())
+    otpUsuario = OTP(username=form_data.username, codigo=generarCodigoOTP(), expiracion=(datetime.now() + timedelta(minutes=5)))
         
     if otpDAO.crearUsuarioOTP(otpUsuario):
         smsOTP = SMS()
         smsOTP.mandarMensajeOTP(codigoOTP = otpUsuario.codigo, numeroDestino=user.telefono)
-        return {"solicitarOTP" : True}
+        
+        return {"solicitarOTP" : True,
+                "info": "OK."}
     
-    return {"solicitarOTP" : False}
+    return {"solicitarOTP" : False,
+            "info": "Error al solicitar la autorizacion OTP"}
 
 @app.post("/login/auth", 
           response_model=Token, 
@@ -62,7 +67,7 @@ async def login_token(form_data: OAuth2PasswordRequestForm = Depends()):
     **Parámetros:**
     - `form_data`: objeto OAuth2PasswordRequestForm: formulario de solicitud de contraseña con los siguientes campos:
         - `username` (str): nombre de usuario.
-        - `password` (str): contraseña del usuario.
+        - `password` (str): codigo OTP del usuario.
 
     **Retorna:**
     - Token: token de acceso generado, con los siguientes campos:
@@ -73,7 +78,7 @@ async def login_token(form_data: OAuth2PasswordRequestForm = Depends()):
     - HTTPException(status_code=401, detail="Usuario o contraseña incorrectos"): si el usuario no existe o la contraseña es incorrecta.
     """
     if not OTPDAO().autenticarOTP(username=form_data.username, otp= form_data.password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario o contraseña incorrectos")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Codigo invalido")
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = crearToken(data={"sub": form_data.username}, expires_delta=access_token_expires)

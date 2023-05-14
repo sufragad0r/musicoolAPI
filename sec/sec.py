@@ -41,7 +41,7 @@ def crearToken(data: dict, expires_delta: timedelta = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def obtenerUsuarioToken(token: str = Depends(OAuth2PasswordBearer(tokenUrl="token"))):
+async def obtenerUsuarioToken(token: str = Depends(OAuth2PasswordBearer(tokenUrl="/login/auth"))):
     try:
         dao = UsuarioDAO()
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])

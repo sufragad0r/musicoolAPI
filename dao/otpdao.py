@@ -4,6 +4,7 @@ from dao.mongoConector import Conector
 from pymongo.errors import PyMongoError
 from pymongo.database import Database
 from pymongo.collection import Collection
+from datetime import datetime
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -91,15 +92,20 @@ class OTPDAO :
 
             OTPDict = datos.find_one({"username": username})
 
-            if OTPDict:
-                if otp == OTPDict["codigo"]:
-                    logging.info(f"Usuario obtenido: {username}")
-                    self.eliminarOTP(username)
-                    return True
+            if not OTPDict:
+                logging.warning(f"OTP no encontrado en la BD: {username}")
+                return False
+            
+            if datetime.now() > OTPDict["expiracion"]:
+                logging.warning(f"Codigo otp de: {username} vencido")
+                self.eliminarOTP(username)
+                return False
 
-            logging.warning(f"Usuario no encontrado en la BD: {username}")
-            return False
+            if otp == OTPDict["codigo"]:
+                logging.info(f"OTP obtenido: {username}")
+                self.eliminarOTP(username)
+                return True
 
         except PyMongoError as e:
             logging.error(f"Error al obtener el usuario: {e}")
-            return None
+            return False
