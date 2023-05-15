@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 
-class Usuario(BaseModel):
+class OTP(BaseModel):
     username: str
-    password: str
-    telefono: str
+    codigo: str
+    expiracion: datetime

@@ -48,5 +48,6 @@ tests/
 *.json
 *.yaml
 *.ini
-# documentos de mongodb
+
+# Documentos de mongodb
 mongo-data

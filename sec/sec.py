@@ -15,6 +15,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 users = {
     "clienteWpf": "X8#pW9&mL@5z",
     "clienteMovil": "fR5^hN7*oP#2",
+    "dev" : "dev"
 }
 def verificarPassword(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -40,7 +41,7 @@ def crearToken(data: dict, expires_delta: timedelta = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def obtenerUsuarioToken(token: str = Depends(OAuth2PasswordBearer(tokenUrl="token"))):
+async def obtenerUsuarioToken(token: str = Depends(OAuth2PasswordBearer(tokenUrl="/login/auth"))):
     try:
         dao = UsuarioDAO()
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
