@@ -17,6 +17,12 @@ users = {
     "clienteMovil": "fR5^hN7*oP#2",
     "dev" : "dev"
 }
+
+originesPerimitidos = [
+    "ClienteWPF",
+    "ClienteMovil",
+    "http://localhost:8000",
+]
 def verificarPassword(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
