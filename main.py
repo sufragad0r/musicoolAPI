@@ -8,14 +8,18 @@ from obj.token import Token, TokenData
 from obj.autorizacionotp import autorizacionOTP
 from dao.usuariodao import UsuarioDAO
 from dao.otpdao import OTPDAO
-from sec.sec import verificarPassword, obtener_password_hash, autenticarUsuario, crearToken, obtenerUsuarioToken,ACCESS_TOKEN_EXPIRE_MINUTES, validar_credenciales
+from sec.sec import verificarPassword, obtener_password_hash, autenticarUsuario, crearToken, obtenerUsuarioToken,ACCESS_TOKEN_EXPIRE_MINUTES, validar_credenciales, originesPerimitidos
 from auth2.sms import generarCodigoOTP, SMS
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Musicool", version="ALPHA")
 
 security = HTTPBasic()
 
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=originesPerimitidos,
+)
 
 dao = UsuarioDAO()
 
