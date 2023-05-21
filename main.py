@@ -5,12 +5,14 @@ from jose import JWTError, jwt
 from obj.usuario import Usuario
 from obj.otp import OTP
 from obj.token import Token, TokenData
+from obj.cancion import Cancion
 from obj.autorizacionotp import autorizacionOTP
 from dao.usuariodao import UsuarioDAO
 from dao.otpdao import OTPDAO
 from sec.sec import verificarPassword, obtener_password_hash, autenticarUsuario, crearToken, obtenerUsuarioToken,ACCESS_TOKEN_EXPIRE_MINUTES, validar_credenciales, originesPerimitidos
 from auth2.sms import generarCodigoOTP, SMS
 from fastapi.middleware.cors import CORSMiddleware
+from fm.fmanager import FManager
 
 app = FastAPI(title="Musicool", version="ALPHA")
 
@@ -190,7 +192,7 @@ async def eliminar_usuario(username: str, current_user: Usuario = Depends(obtene
     - HTTPException: Si no se puede encontrar el usuario especificado en la base de datos.
     - HTTPException: Si se produce un error al eliminar el usuario.
     """
-    if current_user.username != username and not validar_credenciales(credentials):
+    if not validar_credenciales(credentials):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
     if current_user.username != username:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No está autorizado para eliminar este usuario")
@@ -201,3 +203,11 @@ async def eliminar_usuario(username: str, current_user: Usuario = Depends(obtene
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El usuario no se encuentra en la base de datos")
     else:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Error al eliminar el usuario")
+    
+@app.post("/cancion")
+async def guardar_cancion(cancion: Cancion):
+    try:
+        manager = FManager()
+        manager.guardar_cancion(cancion.dict())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
