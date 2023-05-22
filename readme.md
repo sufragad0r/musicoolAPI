@@ -31,3 +31,17 @@ docker compose up -d
 http://127.0.0.1:8000/docs
 ## Cliente de mongo db
 http://localhost:8200/db/musicooldb/usuarios
+
+#Servidor grpc
+Crear los protos
++ Para crear los protos es necesario instalar protoc
+https://github.com/protocolbuffers/protobuf/releases
++ Correr el siguiente comando
+````bash
+protoc --go_out=. --go-grpc_out=. cancion.proto
+````
++ Ejecutar el servidor
+````bash
+cd grpc-musicool/servidor
+go run main.go
+````
