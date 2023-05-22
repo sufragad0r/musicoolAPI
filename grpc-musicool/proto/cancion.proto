@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package grpc;
+
+option go_package = "./protobuf";
+
+
+message Data {
+  int32 sequence = 1;
+  string filename = 2;
+  int64 rate = 3;
+  int64 channels = 4;
+  bytes data = 5;
+  string id = 6;
+}
+
+message Cancion{
+  string nombreArtista = 7;
+  string album = 8;
+  string nombreCancion = 9;
+}
+
+service Streamer {
+  rpc Audio(stream Cancion) returns (stream Data);
+}
