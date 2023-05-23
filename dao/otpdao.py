@@ -2,7 +2,6 @@ import logging
 from obj.otp import OTP
 from dao.mongoConector import Conector
 from pymongo.errors import PyMongoError
-from pymongo.database import Database
 from pymongo.collection import Collection
 from datetime import datetime
 
@@ -21,7 +20,7 @@ class OTPDAO :
         except PyMongoError as e:
             logging.error(f"Error al conectar a la base de datos: {e}")
     
-    def crearUsuarioOTP(self, otp: OTP) -> bool:
+    def crear_usuarioOTP(self, otp: OTP) -> bool:
         try:
             datos: Collection = self.db.otp
 
@@ -86,7 +85,7 @@ class OTPDAO :
             logging.error(f"Error al eliminar el usuario: {e}")
             return -2
 
-    def autenticarOTP(self, username: str, otp: str) -> bool:
+    def autenticar_OTP(self, username: str, otp: str) -> bool:
         try:
             datos: Collection = self.db.otp
 

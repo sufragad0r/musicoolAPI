@@ -14,7 +14,7 @@ class SMS:
     def __init__(self) -> None:
         self._cliente : Client = Client(ACCOUNT_SID, AUTH_TOKEN)
     
-    def mandarMensajeOTP(self,codigoOTP: str, numeroDestino : str) -> None:
+    def mandar_mensajeOTP(self,codigoOTP: str, numeroDestino : str) -> None:
         try:
             self._cliente.messages.create(
                 body=f"El codigo de acceso es: {codigoOTP}",
