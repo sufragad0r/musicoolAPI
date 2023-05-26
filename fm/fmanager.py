@@ -2,9 +2,7 @@ import base64
 import os
 import logging
 
-# Configuración del registro de errores y notificaciones
 logging.basicConfig(filename='fmanager.log', level=logging.ERROR)
-
 
 RUTA_BIBLIOTECA: str = "Biblioteca"
 
@@ -45,7 +43,7 @@ class FManager:
     def __init__(self) -> None:
         self.rutaBiblioteca = RUTA_BIBLIOTECA
 
-    def guardar_cancion(self, cancion: dict) -> None:
+    def guardar_cancion(self, cancion: dict) -> str:
         try:
             if not verificar_carpeta_existente(self.rutaBiblioteca, cancion['artista']):
                 crear_carpeta(self.rutaBiblioteca, cancion['artista'])
@@ -54,5 +52,7 @@ class FManager:
                 crear_carpeta(self.rutaBiblioteca+f"/{cancion['artista']}", cancion["nombre"])
 
             guardar_bytes_como_mp3(cancion, os.path.join(self.rutaBiblioteca, cancion['artista'], cancion["nombre"], cancion["nombre"])+".mp3")
+
+            return os.path.join(self.rutaBiblioteca, cancion['artista'], cancion["nombre"], cancion["nombre"])+".mp3"
         except Exception as e:
             print(f"Error al guardar la canción: {e}")

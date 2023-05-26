@@ -1,8 +1,15 @@
 from pydantic import BaseModel
+from datetime import datetime
+
+class CancionBytes(BaseModel):
+    bytes: str
+    artista: str
+    nombre: str
+    fechaDePublicacion: str
 
 class Cancion(BaseModel):
-    bytes: str
-    nombre: str
-    artista: str
-    fecha_de_publicacion: str
-    url: str
+    nombre : str
+    artista : str
+    fechaDePublicacion: datetime
+    ruta: str
+    foro: dict
