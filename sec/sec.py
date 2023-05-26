@@ -3,7 +3,7 @@ from passlib.context import CryptContext
 from dao.usuariodao import UsuarioDAO
 from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends
-from fastapi.security import OAuth2PasswordBearer,HTTPBasic, HTTPBasicCredentials
+from fastapi.security import OAuth2PasswordBearer, HTTPBasicCredentials
 from obj.token import TokenData
 
 SECRET_KEY = "b9283fe52786894f37fd73b300fd8abcdaadb03d930c108808431c9f84f4cf8a"
@@ -29,15 +29,15 @@ def verificarPassword(plain_password, hashed_password):
 def obtener_password_hash(password):
     return pwd_context.hash(password)
 
-def autenticarUsuario(username: str, password: str, dao : UsuarioDAO = UsuarioDAO()):
-    user = dao.obtenerUsuario(username)
+def autenticar_usuario(username: str, password: str, dao : UsuarioDAO = UsuarioDAO()):
+    user = dao.obtener_usuario(username)
     if not user:
         return False
     if not verificarPassword(password, user.password):
         return False
     return user
 
-def crearToken(data: dict, expires_delta: timedelta = None):
+def crear_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -57,10 +57,35 @@ async def obtenerUsuarioToken(token: str = Depends(OAuth2PasswordBearer(tokenUrl
         token_data = TokenData(username=username)
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token invalido")
-    user = dao.obtenerUsuario(token_data.username)
+    user = dao.obtener_usuario(token_data.username)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no encontrado")
     return user
+
+def obtener_username(token:str) -> str:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        return username
+    except JWTError:
+        return ""
+
+async def validar_token(token: str) -> bool:
+    try:
+        dao = UsuarioDAO()
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        expiracion : datetime = payload.get("exp")
+
+        if dao.obtener_usuario(username) is None:
+            return False
+
+        if datetime.now() > expiracion:
+            return False
+    except JWTError:
+        return False
+    
+    return True
 
 def validar_credenciales(credentials: HTTPBasicCredentials):
     if credentials.username in users and credentials.password == users[credentials.username]:
