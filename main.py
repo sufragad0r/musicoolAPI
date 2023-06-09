@@ -75,7 +75,7 @@ async def login_token(form_data: OAuth2PasswordRequestForm = Depends()):
     **Parámetros:**
     - `form_data`: objeto OAuth2PasswordRequestForm: formulario de solicitud de contraseña con los siguientes campos:
         - `username` (str): nombre de usuario.
-        - `otpCode` (str): codigo OTP del usuario.
+        - `password` (str): codigo OTP del usuario.
 
     **Retorna:**
     - Token: token de acceso generado, con los siguientes campos:
@@ -93,7 +93,7 @@ async def login_token(form_data: OAuth2PasswordRequestForm = Depends()):
     access_token = crear_token(data={"sub": form_data.username}, expires_delta=access_token_expires)
     dao = UsuarioDAO()
     usuario = dao.obtener_usuario(form_data.username)
-    return {"access_token": access_token, "token_type": "bearer", "rol":usuario.rol}
+    return {"access_token": access_token, "token_type": "bearer", "rol": usuario.rol}
     
     
 @app.post("/usuarios", 
