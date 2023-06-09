@@ -75,12 +75,13 @@ async def login_token(form_data: OAuth2PasswordRequestForm = Depends()):
     **Parámetros:**
     - `form_data`: objeto OAuth2PasswordRequestForm: formulario de solicitud de contraseña con los siguientes campos:
         - `username` (str): nombre de usuario.
-        - `password` (str): codigo OTP del usuario.
+        - `otpCode` (str): codigo OTP del usuario.
 
     **Retorna:**
     - Token: token de acceso generado, con los siguientes campos:
         - access_token (str): token de acceso.
         - token_type (str): tipo de token (en este caso, "bearer").
+        - rol (str): rol del usuario (artista, escucha)
 
     **Excepciones:**
     - HTTPException(status_code=401, detail="Usuario o contraseña incorrectos"): si el usuario no existe o la contraseña es incorrecta.
@@ -90,7 +91,9 @@ async def login_token(form_data: OAuth2PasswordRequestForm = Depends()):
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = crear_token(data={"sub": form_data.username}, expires_delta=access_token_expires)
-    return {"access_token": access_token, "token_type": "bearer"}
+    dao = UsuarioDAO()
+    usuario = dao.obtener_usuario(form_data.username)
+    return {"access_token": access_token, "token_type": "bearer", "rol":usuario.rol}
     
     
 @app.post("/usuarios", 
