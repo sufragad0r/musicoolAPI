@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import FastAPI, HTTPException, status, Depends, Header
+from fastapi import FastAPI, HTTPException, status, Depends, Header, File, UploadFile
 from fastapi.security import OAuth2PasswordRequestForm, HTTPBasicCredentials, HTTPBasic
 from datetime import datetime, timedelta
 from obj.usuario import Usuario
@@ -12,7 +12,8 @@ from dao.usuariodao import UsuarioDAO
 from dao.artistadao import ArtistaDAO
 from dao.otpdao import OTPDAO
 from dao.canciondao import CancionDAO
-from sec.sec import obtener_password_hash, autenticar_usuario, crear_token, ACCESS_TOKEN_EXPIRE_MINUTES, validar_credenciales, originesPerimitidos, validar_token, obtener_username
+from sec.sec import obtener_password_hash, autenticar_usuario, crear_token, ACCESS_TOKEN_EXPIRE_MINUTES, \
+    validar_credenciales, originesPerimitidos, validar_token, obtener_username
 from auth2.sms import generarCodigoOTP, SMS
 from fastapi.middleware.cors import CORSMiddleware
 from fm.fmanager import FManager
@@ -26,9 +27,10 @@ app.add_middleware(
     allow_origins=originesPerimitidos,
 )
 
+
 @app.post("/login",
-          response_model=autorizacionOTP,  
-          summary="Login para el sistema", 
+          response_model=autorizacionOTP,
+          summary="Login para el sistema",
           tags=["Login"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """
@@ -64,9 +66,10 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"solicitarOTP" : False,
             "info": "Error al solicitar la autorizacion OTP"}
 
-@app.post("/login/auth", 
-          response_model=Token, 
-          summary="Validacion OTP para obtener un token de autentificacion", 
+
+@app.post("/login/auth",
+          response_model=Token,
+          summary="Validacion OTP para obtener un token de autentificacion",
           tags=["Login"])
 async def login_token(form_data: OAuth2PasswordRequestForm = Depends()):
     """
@@ -86,19 +89,19 @@ async def login_token(form_data: OAuth2PasswordRequestForm = Depends()):
     **Excepciones:**
     - HTTPException(status_code=401, detail="Usuario o contraseña incorrectos"): si el usuario no existe o la contraseña es incorrecta.
     """
-    if not OTPDAO().autenticar_OTP(username=form_data.username, otp= form_data.password):
+    if not OTPDAO().autenticar_OTP(username=form_data.username, otp=form_data.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Codigo invalido")
-    
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = crear_token(data={"sub": form_data.username}, expires_delta=access_token_expires)
     dao = UsuarioDAO()
     usuario = dao.obtener_usuario(form_data.username)
     return {"access_token": access_token, "token_type": "bearer", "rol": usuario.rol}
-    
-    
-@app.post("/usuarios", 
-          status_code=status.HTTP_201_CREATED, 
-          summary="Crear usuario", 
+
+
+@app.post("/usuarios",
+          status_code=status.HTTP_201_CREATED,
+          summary="Crear usuario",
           tags=["Usuarios"])
 def crear_usuario(usuario: Usuario, credentials: HTTPBasicCredentials = Depends(security)):
     """
@@ -114,10 +117,10 @@ def crear_usuario(usuario: Usuario, credentials: HTTPBasicCredentials = Depends(
     - HTTPException: Si el usuario ya existe en la base de datos o si hay un error al crearlo.
     """
     dao = UsuarioDAO()
-    
+
     if not validar_credenciales(credentials):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Cliente no autorizado")
-    
+
     hashed_password = obtener_password_hash(usuario.password)
     usuario.password = hashed_password
 
@@ -128,12 +131,13 @@ def crear_usuario(usuario: Usuario, credentials: HTTPBasicCredentials = Depends(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuario existente en la BD")
     else:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Error al crear usuario")
-    
+
+
 @app.get("/usuarios/{username}",
-          status_code=status.HTTP_200_OK, 
-          response_model=Usuario,
-          summary="Obtener usuario",
-          tags=["Usuarios"])
+         status_code=status.HTTP_200_OK,
+         response_model=Usuario,
+         summary="Obtener usuario",
+         tags=["Usuarios"])
 async def obtener_usuario(username: str, credentials: HTTPBasicCredentials = Depends(security)):
     """
     Obtiene la información del usuario especificado.
@@ -146,17 +150,18 @@ async def obtener_usuario(username: str, credentials: HTTPBasicCredentials = Dep
 
     dao = UsuarioDAO()
     usuario = dao.obtener_usuario(username)
-    
+
     if usuario is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no existente")
-    
+
     return usuario
 
-@app.put("/usuarios/actualizar", 
+
+@app.put("/usuarios/actualizar",
          status_code=status.HTTP_200_OK,
          summary="Actualizar usuario",
          tags=["Usuarios"])
-async def actualizar_usuario(usuarioActualizado : Usuario, token : Optional[str]= Header(None)):
+async def actualizar_usuario(usuarioActualizado: Usuario, token: Optional[str] = Header(None)):
     """
     Actualiza un usuario existente en la base de datos.
 
@@ -174,21 +179,21 @@ async def actualizar_usuario(usuarioActualizado : Usuario, token : Optional[str]
     """
     if token is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
-    
+
     if not validar_token(token):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token invalido")
-    
+
     dao = UsuarioDAO()
     usernameToken = obtener_username(token)
 
     if usuarioActualizado.username != usernameToken:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No está autorizado para actualizar este usuario")
-        
-    
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="No está autorizado para actualizar este usuario")
+
     hashed_password = obtener_password_hash(usuarioActualizado.password)
     usuarioActualizado.password = hashed_password
     resultado = dao.actualizar_usuario(usuarioActualizado.username, dict(usuarioActualizado))
-    
+
     if resultado == 0:
         return {"mensaje": f"Usuario actualizado: {usuarioActualizado.username}"}
     elif resultado == -1:
@@ -196,11 +201,12 @@ async def actualizar_usuario(usuarioActualizado : Usuario, token : Optional[str]
     else:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Error al actualizar el usuario")
 
-@app.delete("/usuarios/eliminar", 
+
+@app.delete("/usuarios/eliminar",
             status_code=status.HTTP_200_OK,
             summary="Eliminar usuario",
             tags=["Usuarios"])
-async def eliminar_usuario(username: str, token : Optional[str]= Header(None)):
+async def eliminar_usuario(username: str, token: Optional[str] = Header(None)):
     """
     Eliminar el usuario autenticado de la BD.
 
@@ -221,15 +227,16 @@ async def eliminar_usuario(username: str, token : Optional[str]= Header(None)):
 
     if not validar_token(token):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token invalido")
-    
+
     dao = UsuarioDAO()
-    usernameToken = obtener_username(token)    
-   
+    usernameToken = obtener_username(token)
+
     if usernameToken != username:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No está autorizado para eliminar este usuario")
-   
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="No está autorizado para eliminar este usuario")
+
     resultado = dao.eliminar_usuario(username)
-   
+
     if resultado == 0:
         return {"mensaje": f"Usuario eliminado: {username}"}
     elif resultado == -1:
@@ -237,11 +244,12 @@ async def eliminar_usuario(username: str, token : Optional[str]= Header(None)):
     else:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Error al eliminar el usuario")
 
-@app.post("/artistas", 
-          status_code=status.HTTP_201_CREATED, 
-          summary="Crear artista", 
+
+@app.post("/artistas",
+          status_code=status.HTTP_201_CREATED,
+          summary="Crear artista",
           tags=["Artistas"])
-def crear_artista(usuario: Artista, token : Optional[str]= Header(None)):
+def crear_artista(usuario: Artista, token: Optional[str] = Header(None)):
     """
     Crea un nuevo artista en la base de datos.
 
@@ -262,14 +270,14 @@ def crear_artista(usuario: Artista, token : Optional[str]= Header(None)):
 
     if not validar_token(token):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
-    
+
     if obtener_username(token) != usuario.username:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no autorizado")
 
     if daoUsuario.obtener_usuario(usuario.username).rol == "artista":
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Usuario ya es un artista")
-    
-    if daoUsuario.actualizar_usuario(usuario.username, {"rol" : "artista"}) != 0:
+
+    if daoUsuario.actualizar_usuario(usuario.username, {"rol": "artista"}) != 0:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Usuario no pudo actualizar su rol")
 
     resultado = daoArtista.crear_artista(usuario)
@@ -285,26 +293,28 @@ def crear_artista(usuario: Artista, token : Optional[str]= Header(None)):
           status_code=status.HTTP_200_OK,
           summary="Subir cancion",
           tags=["Canciones"])
-async def guardar_cancion(cancion: CancionBytes, token : Optional[str]= Header(None)):
+async def guardar_cancion(cancion: Cancion, token: Optional[str] = Header(None), image: UploadFile = File(...),
+                          song: UploadFile = File(...)):
     if token is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
-    
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
     if not validar_token(token):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
-    
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
+
     try:
         username = obtener_username(token)
         if UsuarioDAO().obtener_rol(username) != "artista":
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no es artista")
-        
+
         artista = ArtistaDAO().obtener_artista(username)
         cancion.artista = artista.nombreComercial
 
-        manager = FManager()
-        ruta = manager.guardar_cancion(cancion.dict())
+        cancionBD = Cancion(nombre=cancion.nombre, artista=cancion.artista, fechaDePublicacion=datetime.now(), foro={})
+        idCancion = CancionDAO().crear_cancion(cancionBD)
 
-        cancionBD = Cancion(nombre=cancion.nombre, artista=cancion.artista,fechaDePublicacion=datetime.now(),ruta=ruta,foro={})
-        return CancionDAO().crear_cancion(cancionBD)
+        manager = FManager()
+        await manager.save_image(image, idCancion)
+        await manager.save_image(song, idCancion)
+        return {"mensaje": f"La cancinn: {cancion.nombre} se ha guardado con exito"}
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail="Error del servidor")

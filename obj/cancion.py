@@ -11,5 +11,4 @@ class Cancion(BaseModel):
     nombre : str
     artista : str
     fechaDePublicacion: datetime
-    ruta: str
     foro: dict

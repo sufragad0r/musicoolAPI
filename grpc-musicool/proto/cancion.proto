@@ -6,12 +6,12 @@ option go_package = "./protobuf";
 
 
 message Data {
-  int32 sequence = 1;
-  string filename = 2;
-  int64 rate = 3;
-  int64 channels = 4;
-  bytes data = 5;
-  string id = 6;
+  int32 secuenciaCancion = 1;
+  int32 secuenciaImagen = 2;
+  string idCancion = 3;
+  string idImagen = 4;
+  bytes dataCancion = 5;
+  bytes dataImagen = 6;
 }
 
 message Cancion{

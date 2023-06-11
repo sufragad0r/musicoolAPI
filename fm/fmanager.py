@@ -2,6 +2,8 @@ import base64
 import os
 import logging
 
+from fastapi import UploadFile
+
 logging.basicConfig(filename='fmanager.log', level=logging.ERROR)
 
 RUTA_BIBLIOTECA: str = "Biblioteca"
@@ -56,3 +58,13 @@ class FManager:
             return os.path.join(self.rutaBiblioteca, cancion['artista'], cancion["nombre"], cancion["nombre"])+".mp3"
         except Exception as e:
             print(f"Error al guardar la canción: {e}")
+
+    async def save_image(self, image: UploadFile, image_name: str):
+        image_path = f"{self.rutaBiblioteca}/{image_name}"
+        with open(image_path, "wb") as image_file:
+            image_file.write(await image.read())
+
+    async def save_song(self, song: UploadFile, song_name: str):
+        song_path = f"{self.rutaBiblioteca}/{song_name}"
+        with open(song_path, "wb") as song_file:
+            song_file.write(await song.read())
