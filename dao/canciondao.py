@@ -2,7 +2,7 @@ import logging
 from dao.mongoConector import Conector
 from pymongo.errors import PyMongoError
 from pymongo.database import Database
-from obj.cancion import Cancion
+from obj.cancion import Cancion, CancionResultado
 from datetime import date
 
 logging.basicConfig(
@@ -10,6 +10,7 @@ logging.basicConfig(
     filename='cancionDAO.log',
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+
 
 class CancionDAO:
     db: Database = None
@@ -39,15 +40,17 @@ class CancionDAO:
         except PyMongoError as e:
             logging.error(f"Error al crear la canción: {e}")
         return None
-    def buscar_cancion(self, cancion:Cancion) -> str:
+
+    def buscar_cancion(self, cancion: Cancion) -> CancionResultado:
         try:
             query = {
                 "artista": {"$regex": cancion.artista, "$options": "i"},
                 "nombre": {"$regex": cancion.nombre, "$options": "i"}
             }
-            existing_cancion = self.db.canciones.find_one(query, collation={"locale": "en", "strength": 1})
+            existing_cancion = self.db.canciones.find_one(query, projection={"_id": 1, "nombre": 1, "artista": 1, "fechaDePublicacion": 1}, collation={"locale": "en", "strength": 1})
             if existing_cancion is not None:
-                idCancion = str(existing_cancion["_id"])
-                return idCancion
+                cancionRes = CancionResultado(id=str(existing_cancion["_id"]), nombre=existing_cancion["nombre"], artista=existing_cancion["artista"], fechaDePublicacion=existing_cancion["fechaDePublicacion"])
+                return cancionRes
+            return None
         except PyMongoError as e:
             logging.error(f"Error al buscar la canción: {e}")
