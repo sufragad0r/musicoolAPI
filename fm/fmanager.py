@@ -45,26 +45,14 @@ class FManager:
     def __init__(self) -> None:
         self.rutaBiblioteca = RUTA_BIBLIOTECA
 
-    def guardar_cancion(self, cancion: dict) -> str:
-        try:
-            if not verificar_carpeta_existente(self.rutaBiblioteca, cancion['artista']):
-                crear_carpeta(self.rutaBiblioteca, cancion['artista'])
 
-            if not verificar_carpeta_existente(self.rutaBiblioteca+f"/{cancion['artista']}", cancion["nombre"]):
-                crear_carpeta(self.rutaBiblioteca+f"/{cancion['artista']}", cancion["nombre"])
 
-            guardar_bytes_como_mp3(cancion, os.path.join(self.rutaBiblioteca, cancion['artista'], cancion["nombre"], cancion["nombre"])+".mp3")
+    async def guardar_imagen(self, documento: UploadFile, nombre_documento: str):
+        image_path = f"{self.rutaBiblioteca}/{nombre_documento}.jpg"
+        with open(image_path, "wb") as buffer:
+            buffer.write(await documento.read())
 
-            return os.path.join(self.rutaBiblioteca, cancion['artista'], cancion["nombre"], cancion["nombre"])+".mp3"
-        except Exception as e:
-            print(f"Error al guardar la canción: {e}")
-
-    async def save_image(self, image: UploadFile, image_name: str):
-        image_path = f"{self.rutaBiblioteca}/{image_name}"
-        with open(image_path, "wb") as image_file:
-            image_file.write(await image.read())
-
-    async def save_song(self, song: UploadFile, song_name: str):
-        song_path = f"{self.rutaBiblioteca}/{song_name}"
-        with open(song_path, "wb") as song_file:
-            song_file.write(await song.read())
+    async def guardar_cancion(self, documento: UploadFile, nombre_documento: str):
+        image_path = f"{self.rutaBiblioteca}/{nombre_documento}.mp4"
+        with open(image_path, "wb") as buffer:
+            buffer.write(await documento.read())

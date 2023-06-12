@@ -1,3 +1,4 @@
+import os.path
 from typing import Optional
 from fastapi import FastAPI, HTTPException, status, Depends, Header, File, UploadFile
 from fastapi.security import OAuth2PasswordRequestForm, HTTPBasicCredentials, HTTPBasic
@@ -17,6 +18,7 @@ from sec.sec import obtener_password_hash, autenticar_usuario, crear_token, ACCE
 from auth2.sms import generarCodigoOTP, SMS
 from fastapi.middleware.cors import CORSMiddleware
 from fm.fmanager import FManager
+from fastapi.responses import FileResponse
 
 app = FastAPI(title="Musicool", version="ALPHA")
 
@@ -52,18 +54,19 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     usuario = autenticar_usuario(username=form_data.username, password=form_data.password)
     if not usuario:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario o contraseña incorrectos")
-    
+
     otpDAO = OTPDAO()
-    otpUsuario = OTP(username=form_data.username, codigo=generarCodigoOTP(), expiracion=(datetime.now() + timedelta(minutes=5)))
-        
+    otpUsuario = OTP(username=form_data.username, codigo=generarCodigoOTP(),
+                     expiracion=(datetime.now() + timedelta(minutes=5)))
+
     if otpDAO.crear_usuarioOTP(otpUsuario):
         smsOTP = SMS()
-        smsOTP.mandar_mensajeOTP(codigoOTP = otpUsuario.codigo, numeroDestino=usuario.telefono)
-        
-        return {"solicitarOTP" : True,
+        smsOTP.mandar_mensajeOTP(codigoOTP=otpUsuario.codigo, numeroDestino=usuario.telefono)
+
+        return {"solicitarOTP": True,
                 "info": "OK."}
-    
-    return {"solicitarOTP" : False,
+
+    return {"solicitarOTP": False,
             "info": "Error al solicitar la autorizacion OTP"}
 
 
@@ -289,32 +292,153 @@ def crear_artista(usuario: Artista, token: Optional[str] = Header(None)):
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Error al crear el artista")
 
 
-@app.post("/cancion",
+@app.post("/subir-cancion",
           status_code=status.HTTP_200_OK,
-          summary="Subir cancion",
+          summary="Subir cancion a la biblioteca",
           tags=["Canciones"])
-async def guardar_cancion(cancion: Cancion, token: Optional[str] = Header(None), image: UploadFile = File(...),
-                          song: UploadFile = File(...)):
+async def subir_cancion(image: UploadFile = File(...), song: UploadFile = File(...), cancion_id: str = 'dafault'):
+    """
+    Guarda la cancion y la imagen en archivo en el servidor.
+
+    **Parámetros**:
+    - `image`: Una imagen solo aceptamos jpg.
+    - `song`: Una canción solo aceptamos mp4.
+    - `cancion_id`: este id debe ser unico para cada canción e imagen en caso de que se le pase uno repetido se sobreescribira el archivo
+
+    **Retorna**:
+    - Un mensaje que indica si la cancion y la imagen fue guardado con  exito.
+
+    **Excepciones**:
+    - HTTPException: si los formatos son invalidos.
+    """
+    if image.content_type != 'image/jpeg':
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                            detail="Solo se pueden guardar imagenes jpg al sistema")
+    if song.content_type != 'audio/mpeg':
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                            detail="Solo se pueden guardar canciones mp4 al sistema")
+    try:
+        manager = FManager()
+        await manager.guardar_imagen(image, cancion_id)
+        await manager.guardar_cancion(song, cancion_id)
+        return {"mensaje": f"La cancion: {song.filename} la imagen {image.filename}  se han guardado con exito"}
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="Error del servidor")
+
+
+@app.post("/registrar-cancion",
+          status_code=status.HTTP_201_CREATED,
+          summary="Registar cancion en la base de datos",
+          tags=["Canciones"])
+def registrar_cancion(cancion: Cancion, token: Optional[str] = Header(None)):
+    """
+    Crea un nueva cancion en la base de datos.
+
+    **Parámetros**:
+    - `cancion`: Un objeto Cancion con la información de la nueva cancion.
+    - `token`: Un token de autentificacion barrer
+
+    **Retorna**:
+    - Un id unico de la cancion para poder guardarlo en la ruta subir-cancion.
+
+    **Excepciones**:
+    - HTTPException: si el token de usuario artista no es valido.
+    """
+
+    daoCancion = CancionDAO()
     if token is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
     if not validar_token(token):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
 
-    try:
-        username = obtener_username(token)
-        if UsuarioDAO().obtener_rol(username) != "artista":
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no es artista")
+    resultado = daoCancion.crear_cancion(cancion)
+    if resultado != None:
+        return {f"{resultado}"}
+    elif resultado == -1:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error al guradar la cancion")
+    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Registro duplicado")
 
-        artista = ArtistaDAO().obtener_artista(username)
-        cancion.artista = artista.nombreComercial
 
-        cancionBD = Cancion(nombre=cancion.nombre, artista=cancion.artista, fechaDePublicacion=datetime.now(), foro={})
-        idCancion = CancionDAO().crear_cancion(cancionBD)
+@app.get("/obtener-cancion",
+          status_code=status.HTTP_200_OK,
+          summary="Obtiene la cancion que coincida con el id",
+          tags=["Canciones"]
+          )
+async def obtener_cancion(id: str, token: Optional[str] = Header(None)):
+    """
+       Obtiene la canción de la biblioteca de musicool.
 
-        manager = FManager()
-        await manager.save_image(image, idCancion)
-        await manager.save_image(song, idCancion)
-        return {"mensaje": f"La cancinn: {cancion.nombre} se ha guardado con exito"}
-    except Exception as e:
-        print(e)
-        raise HTTPException(status_code=500, detail="Error del servidor")
+       **Parámetros**:
+       - `id`: Id unico de la canción se puede obtener en los metodos de busqueda.
+       - `token`: Un token de autentificacion barrer
+
+       **Retorna**:
+       - La canción.
+
+       **Excepciones**:
+       - HTTPException: si no se encuentra un archivo con el id especificado.
+       """
+    if token is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
+    if not validar_token(token):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
+    ruta_cancion = 'Biblioteca/'+id+'.mp4'
+    if os.path.exists(ruta_cancion):
+        return FileResponse(ruta_cancion, media_type="audio/mpeg")
+    raise HTTPException(status_code=404, detail="Archivo no encontrado")
+
+
+@app.get("/obtener-imagen",
+          status_code=status.HTTP_200_OK,
+          summary="Obtiene la imagen que coincida con el id",
+          tags=["Canciones"]
+          )
+async def obtener_imagen(id: str, token: Optional[str] = Header(None)):
+    """
+           Obtiene la imagen de la biblioteca de musicool.
+
+           **Parámetros**:
+           - `id`: Id unico de la canción se puede obtener en los metodos de busqueda.
+           - `token`: Un token de autentificacion barrer
+
+           **Retorna**:
+           - La imagen de la canción.
+
+           **Excepciones**:
+           - HTTPException: si no se encuentra un archivo con el id especificado.
+           """
+    if token is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
+    if not validar_token(token):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
+    ruta_cancion = 'Biblioteca/'+id+'.jpg'
+    if os.path.exists(ruta_cancion):
+        return FileResponse(ruta_cancion, media_type="image/jpeg")
+    raise HTTPException(status_code=404, detail="Archivo no encontrado")
+
+@app.post("/buscar-cancion",
+          status_code=status.HTTP_200_OK,
+          summary="Retorna el id unico de las canciones para poder buscar la cancion y la imagen",
+          tags=["Canciones"])
+async def buscar_cancion(cancion: Cancion, token: Optional[str] = Header(None)):
+    """
+           Obtiene la imagen de la base de datos de musicool.
+
+           **Parámetros**:
+           - `Cancion`: Con los criterios de busqueda primero nombre de la cancion y despues artista.
+           - `token`: Un token de autentificacion barrer
+
+           **Retorna**:
+           - La imagen de la canción.
+
+           **Excepciones**:
+           - HTTPException: si no se encuentra un archivo con el id especificado.
+           """
+    if token is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
+    if not validar_token(token):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
+    cancinDao = CancionDAO()
+    idCancion = cancinDao.buscar_cancion(cancion)
+    return idCancion
