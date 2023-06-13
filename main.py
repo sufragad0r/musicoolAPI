@@ -1,8 +1,12 @@
 import os.path
 from typing import Optional
+
+from bson import ObjectId
 from fastapi import FastAPI, HTTPException, status, Depends, Header, File, UploadFile
 from fastapi.security import OAuth2PasswordRequestForm, HTTPBasicCredentials, HTTPBasic
 from datetime import datetime, timedelta
+
+from obj.comentario import Comentario
 from obj.usuario import Usuario
 from obj.artista import Artista
 from obj.otp import OTP
@@ -318,6 +322,10 @@ async def subir_cancion(image: UploadFile = File(...), song: UploadFile = File(.
     if song.content_type != 'audio/mpeg':
         raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
                             detail="Solo se pueden guardar canciones mp4 al sistema")
+    cancionDao = CancionDAO()
+    if not cancionDao.buscar_id_cancion(cancion_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="No se encontro el id de la canción verifica el id o crea uno nuevo")
     try:
         manager = FManager()
         await manager.guardar_imagen(image, cancion_id)
@@ -432,7 +440,7 @@ async def buscar_cancion(cancion: CancionResultado, token: Optional[str] = Heade
            - `token`: Un token de autentificacion barrer
 
            **Retorna**:
-           - La imagen de la canción.
+           - Retorna el id unico de las canciones para poder buscar la cancion y la imagen.
 
            **Excepciones**:
            - HTTPException: si no se encuentra un archivo con el id especificado.
@@ -447,3 +455,58 @@ async def buscar_cancion(cancion: CancionResultado, token: Optional[str] = Heade
         return cancionRes
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontro ninguna cancion")
 
+
+@app.post("/agregar-comentario",
+          status_code=status.HTTP_200_OK,
+          summary="agrega un comentario a una cancion",
+          tags=["Foros"])
+async def agregar_comentario(comentario: Comentario, token: Optional[str] = Header(None)):
+    """
+           Registrar los comentarios de las canciones.
+
+           **Parámetros**:
+           - `Comentario`: Con el id unico de cada cancion, el autor y el comentario.
+           - `token`: Un token de autentificacion barrer
+
+           **Retorna**:
+           - Un status code 200 si todo sale bien.
+
+           **Excepciones**:
+           - HTTPException: Errores al agregar comentario.
+           """
+    if token is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
+    if not validar_token(token):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
+    cancinDao = CancionDAO()
+    id_cancion = ObjectId(comentario.idCancion)
+    cancionRes = cancinDao.comentarCancion(id_cancion=id_cancion, autor=comentario.autor, comentario=comentario.comentario)
+    if cancionRes != None:
+        return cancionRes
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontro ninguna cancion")
+
+@app.post("/obtener-comentarios",
+          status_code=status.HTTP_200_OK,
+          summary="Obtiene los comentarios de una cancíón",
+          tags=["Foros"])
+async def obtener_comentarios(id_Cancion: str, token: Optional[str] = Header(None)):
+    """
+           Obtiene los comentarios de las canciones mediante un id unico.
+
+           **Parámetros**:
+           - `idCancion`: Con el id unico de cada cancion.
+           - `token`: Un token de autentificacion barrer
+
+           **Retorna**:
+           - Un diccionario con el foro autor-comentario.
+
+           **Excepciones**:
+           - HTTPException: Errores al agregar comentario.
+           """
+    if token is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
+    if not validar_token(token):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
+    cancinDao = CancionDAO()
+    cancionRes = cancinDao.buscar_foro(id_cancion=id_Cancion)
+    return cancionRes

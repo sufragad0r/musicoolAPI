@@ -1,38 +1,42 @@
 # Como correr la api
-## Crear el entorno virtual
-En windows 
+## Corrrer el contenedor de mongo db, el cliente mongo express y la api de musicool
++ Primero se tendra que crear un archivo .env con las credenciales de twilio
 ```bash
-python -m venv venv
+ACCOUNT_SID=
+AUTH_TOKEN=
 ```
-En linux
-```bash
-python3 -m venv venv
-```
-
-## Activar el entorno virtal
-linux
-```bash
-source venv/bin/activate
-```
-En windows
-```bash
-venv\Scripts\activate.bat
-```
-## Instalar los requerimientos
-En windows y linux
-```bash
-pip install -r requirements.txt
-```
-## Corrrer el contenedor de mongo db y el cliente mongo express
+Despues ejecutar el docker compose
 ```bash
 docker compose up -d
 ```
 ## Documentacion de la api
-http://127.0.0.1:8000/docs
+http://localhost:8000/docs
 ## Cliente de mongo db
 http://localhost:8200/db/musicooldb/usuarios
 
-#Servidor grpc
+
+
+# Generalidades
++ Se manejan dos volumenes 
+  + Uno para la biblioteca donde se guardan las imagenes de las canciones y las canciones en si
+  + El otro para la persistencia de bases de datos de mongo
+  
+Cuando la api rest agrega una nueva cancion o imagen a la biblioteca, en la maquina donde se ejecute docker
+aparecera la carpeta biblioteca actualizada
+
+Este mismo proceso pasa con la carpeta mongo-data solo que quien modifica la carpeta es
+el contenedor que contiene mongodb
+
+Mongo-express solo es un cliente mas de mongodb que le sirvio al equipo de desarrollo para poder hacer pruebas
+El contenedor que contiene la api-rest de musicool se contruye por el dockerFile del proyecto
+los demás servicios estan especificados en el docker compose así como la orquestación del mismo
+
+
+
+
+
+
+# Servidor grpc (No se implemento al final)
 Crear los protos
 + Para crear los protos es necesario instalar protoc
 https://github.com/protocolbuffers/protobuf/releases

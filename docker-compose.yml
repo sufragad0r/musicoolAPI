@@ -26,3 +26,21 @@ services:
       - ME_CONFIG_MONGODB_ADMINUSERNAME=dev
       - ME_CONFIG_MONGODB_ADMINPASSWORD=dev
       - ME_CONFIG_MONGODB_SERVER=mongodb
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    container_name: api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+    environment:
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+    volumes:
+      - ./Biblioteca:/app/Biblioteca
