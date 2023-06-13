@@ -75,3 +75,4 @@ Biblioteca/
 
 # Go workspace file
 go.work
+Dockerfile
