@@ -1,29 +1,11 @@
 # Como correr la api
-## Crear el entorno virtual
-En windows 
-```bash
-python -m venv venv
-```
-En linux
-```bash
-python3 -m venv venv
-```
-
-## Activar el entorno virtal
-linux
-```bash
-source venv/bin/activate
-```
-En windows
-```bash
-venv\Scripts\activate.bat
-```
-## Instalar los requerimientos
-En windows y linux
-```bash
-pip install -r requirements.txt
-```
 ## Corrrer el contenedor de mongo db y el cliente mongo express
++ Primero se tendra que crear un archivo .env con las credenciales de twilio
+```bash
+ACCOUNT_SID=
+AUTH_TOKEN=
+```
+Despues ejecutar el docker compose
 ```bash
 docker compose up -d
 ```
@@ -32,7 +14,19 @@ http://127.0.0.1:8000/docs
 ## Cliente de mongo db
 http://localhost:8200/db/musicooldb/usuarios
 
-#Servidor grpc
+## Api rest
+http://localhost:8000/docs
+
+# Generalidades
++ Se manejan dos volumenes 
+  + Uno para la biblioteca donde se guardan las imagenes de las canciones y las canciones en si
+  + El otro para la persistencia de bases de datos de mongo
+
+
+
+
+
+# Servidor grpc (No se implemento al final)
 Crear los protos
 + Para crear los protos es necesario instalar protoc
 https://github.com/protocolbuffers/protobuf/releases

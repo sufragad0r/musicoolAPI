@@ -11,8 +11,5 @@ COPY . .
 
 EXPOSE 8000
 
-# Agrega las variables de entorno
-ENV ACCOUNT_SID=<valor_account_sid>
-ENV AUTH_TOKEN=<valor_auth_token>
 # Comando para iniciar tu aplicación FastAPI
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

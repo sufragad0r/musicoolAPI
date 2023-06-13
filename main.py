@@ -322,6 +322,10 @@ async def subir_cancion(image: UploadFile = File(...), song: UploadFile = File(.
     if song.content_type != 'audio/mpeg':
         raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
                             detail="Solo se pueden guardar canciones mp4 al sistema")
+    cancionDao = CancionDAO()
+    if not cancionDao.buscar_id_cancion(cancion_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="No se encontro el id de la canción verifica el id o crea uno nuevo")
     try:
         manager = FManager()
         await manager.guardar_imagen(image, cancion_id)

@@ -1,6 +1,7 @@
 import logging
 
 from bson import ObjectId
+from bson.errors import InvalidId
 
 from dao.mongoConector import Conector
 from pymongo.errors import PyMongoError
@@ -77,3 +78,15 @@ class CancionDAO:
         registro = self.db.canciones.find_one({"_id": ObjectId(id_cancion)})
         comentarios = registro["foro"]
         return comentarios
+
+    def buscar_id_cancion(self, id: str) -> bool:
+        try:
+            filtro = {"_id": ObjectId(id)}
+            resultado = self.db.canciones.find_one(filtro)
+            return resultado is not None
+        except InvalidId as e:
+            logging.error(f"ID inválido: {e}")
+            return False
+        except PyMongoError as e:
+            logging.error(f"Error al buscar la canción: {e}")
+            return False
