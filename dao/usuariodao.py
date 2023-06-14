@@ -16,14 +16,14 @@ class UsuarioDAO:
 
     def __init__(self) -> None:
         try:
-            self.db = Conector().conectarUsuarios()
+            self.db = Conector().conectarBD()
         except PyMongoError as e:
             logging.error(f"Error al conectar a la base de datos: {e}")
             
 
-    def crearUsuario(self, usuarioNuevo: Usuario) -> int:
+    def crear_usuario(self, usuarioNuevo: Usuario) -> int:
         try:
-            datos: Collection = self.db.datos
+            datos: Collection = self.db.usuarios
 
             if datos.find_one({"username": usuarioNuevo.username}):
                 logging.warning(f"Usuario ya existente en la BD")
@@ -37,13 +37,13 @@ class UsuarioDAO:
             logging.error(f"Error al crear el usuario: {e}")
             return -2
 
-    def obtenerUsuario(self, username: str) -> Usuario:
+    def obtener_usuario(self, username: str) -> Usuario:
         try:
-            datos: Collection = self.db.datos
+            datos: Collection = self.db.usuarios
 
             usuarioDict = datos.find_one({"username": username})
             if usuarioDict:
-                usuario = Usuario(username=usuarioDict["username"],password=usuarioDict["password"])
+                usuario = Usuario(username=usuarioDict["username"],password=usuarioDict["password"],telefono=usuarioDict["telefono"], rol=usuarioDict["rol"])
                 logging.info(f"Usuario obtenido: {username}")
                 return usuario
 
@@ -54,9 +54,9 @@ class UsuarioDAO:
             logging.error(f"Error al obtener el usuario: {e}")
             return None
     
-    def actualizarUsuario(self, username: str, campos: dict) -> int:
+    def actualizar_usuario(self, username: str, campos: dict) -> int:
         try:
-            datos: Collection = self.db.datos
+            datos: Collection = self.db.usuarios
 
             if not datos.find_one({"username": username}):
                 logging.warning(f"Usuario no encontrado en la BD: {username}")
@@ -70,9 +70,9 @@ class UsuarioDAO:
             logging.error(f"Error al actualizar el usuario: {e}")
             return -2
 
-    def eliminarUsuario(self, username: str) -> int:
+    def eliminar_usuario(self, username: str) -> int:
         try:
-            datos: Collection = self.db.datos
+            datos: Collection = self.db.usuarios
 
             if not datos.find_one({"username": username}):
                 logging.warning(f"Usuario no encontrado en la BD: {username}")
@@ -85,3 +85,20 @@ class UsuarioDAO:
         except PyMongoError as e:
             logging.error(f"Error al eliminar el usuario: {e}")
             return -2
+    
+    def obtener_rol(self, username:str) -> str:
+        try:
+            datos: Collection = self.db.usuarios
+
+            usuarioDict = datos.find_one({"username": username})
+            if usuarioDict:
+                rol = usuarioDict["rol"]
+                logging.info(f"Rol obtenido: {username}")
+                return rol
+
+            logging.warning(f"Usuario no encontrado en la BD: {username}")
+            return ""
+
+        except PyMongoError as e:
+            logging.error(f"Error al obtener el rol del usuario: {e}")
+            return ""
