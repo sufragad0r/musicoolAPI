@@ -392,7 +392,7 @@ async def obtener_cancion(id: str, token: Optional[str] = Header(None)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
     if not validar_token(token):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no autorizado")
-    ruta_cancion = 'Biblioteca/' + id + '.mp4'
+    ruta_cancion = 'Biblioteca/' + id + '.mp3'
     if os.path.exists(ruta_cancion):
         return FileResponse(ruta_cancion, media_type="audio/mpeg")
     raise HTTPException(status_code=404, detail="Archivo no encontrado")
