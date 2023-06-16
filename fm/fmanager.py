@@ -53,6 +53,6 @@ class FManager:
             buffer.write(await documento.read())
 
     async def guardar_cancion(self, documento: UploadFile, nombre_documento: str):
-        image_path = f"{self.rutaBiblioteca}/{nombre_documento}.mp4"
+        image_path = f"{self.rutaBiblioteca}/{nombre_documento}.mp3"
         with open(image_path, "wb") as buffer:
             buffer.write(await documento.read())
